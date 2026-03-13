@@ -15,63 +15,71 @@ def main():
 	ds: dict[str, dict[str, list[FileDataset]]] = {}
 	for root, _dirs, files in os.walk(args.in_dir):
 		for f in files:
-			fp = os.path.join(args.in_dir, f)
+			fp = os.path.join(root, f)
 
-			ds0: FileDataset = dcmread(fp)
-			study: str = str(ds0.StudyInstanceUID)
-			series: str = str(ds0.SeriesInstanceUID)
+			try:
+				ds0: FileDataset = dcmread(fp)
+				study: str = str(ds0.StudyInstanceUID)
+				series: str = str(ds0.SeriesInstanceUID)
 
-			ds.setdefault(study, {})
-			ds[study].setdefault(series, [])
-			ds[study][series].append(ds0)
+				ds.setdefault(study, {})
+				ds[study].setdefault(series, [])
+				ds[study][series].append(ds0)
+			except Exception as _e:
+				pass
 
 	# Volumize data
 	for study in ds:
 		for series in ds[study]:
-			match ds[study][series][0].Modality:
-				case 'SEG':
-					raw = np.array(ds[study][series][0].pixel_array)
-				case 'CT':
-					# Get dimensions
-					c, r = ds[study][series][0].pixel_array.shape
-					n = 0
-					for dsn in ds[study][series]:
-						if dsn.InstanceNumber > n:
-							n = dsn.InstanceNumber
+			try:
+				match ds[study][series][0].Modality:
+					case 'SEG':
+						raw = np.array(ds[study][series][0].pixel_array)
+					case 'CT':
+						# Get dimensions
+						c, r = ds[study][series][0].pixel_array.shape
+						n = 0
+						for dsn in ds[study][series]:
+							if dsn.InstanceNumber > n:
+								n = dsn.InstanceNumber
 
-					# Create volume and load data into it
-					raw = np.zeros((n, c, r), dtype=np.int32)
-					for dsn in ds[study][series]:
-						raw[dsn.InstanceNumber - 1] = np.array(dsn.pixel_array)
+						# Create volume and load data into it
+						raw = np.zeros((n, c, r), dtype=np.int32)
+						for dsn in ds[study][series]:
+							raw[dsn.InstanceNumber - 1] = np.array(dsn.pixel_array)
 
-					# Normalize to 1mm3
-					scale_y, scale_x = ds[study][series][0].PixelSpacing
-					scale_z = ds[study][series][0].SliceThickness
-					raw = sp.ndimage.zoom(raw, (scale_z, scale_y, scale_x))
+						# Normalize to 1mm3
+						scale_y, scale_x = ds[study][series][0].PixelSpacing
+						scale_z = ds[study][series][0].SliceThickness
+						raw = sp.ndimage.zoom(raw, (scale_z, scale_y, scale_x))
 
-					# Window data to display lungs
-					width = 1800
-					center = -585
-					mx = np.max(raw)
-					mn = np.min(raw)
-					c1 = (mx - mn) / width
-					c2 = (mx + mn) / 2
-					raw = np.clip(c1 * (raw - center) + c2, mn, mx)
+						# Window data to display lungs
+						width = 1800
+						center = -585
+						mx = np.max(raw)
+						mn = np.min(raw)
+						c1 = (mx - mn) / width
+						c2 = (mx + mn) / 2
+						raw = np.clip(c1 * (raw - center) + c2, mn, mx)
 
-					# Mask lungs
-					mask = generate_lung_mask(raw)
-					lungs = mask * raw
+						# Mask lungs
+						mask = generate_lung_mask(raw)
+						lungs = mask * raw
 
-					mask = mask.get() if args.gpu else mask
-					lungs = lungs.get() if args.gpu else lungs
-				case _:
-					continue
+						mask = mask.get() if args.gpu else mask
+						lungs = lungs.get() if args.gpu else lungs
+					case _:
+						continue
 
-			# Export data as stl
-			export_stl(mask, f'./output/{study}|{series}.stl')
+				# Export data as stl
+				date = ds[study][series][0]['AcquisitionDate']
+				export_stl(mask, f'./output/{study}-{series}-{date}.stl')
 
-			# Display data
-			slice_viewer(lungs)
+				# Display data
+				# slice_viewer(lungs)
+
+			except Exception as e:
+				print(e)
 
 
 def export_stl(volume: np.ndarray, outfile: str):
