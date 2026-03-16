@@ -25,14 +25,14 @@ def generate_lung_mask(volume: np.ndarray):
 
 	# Remove area outside of lungs
 	volume = to_np(volume)
-	slice_viewer(volume)
+	# slice_viewer(volume)
 	for k in [0, z - 1]:
 		for j in [0, y - 1]:
 			for i in [0, x - 1]:
 				volume = flood_fill(volume, (k, j, i), 1)
 	volume = np.array(volume)
 	volume = np.invert(volume)
-	slice_viewer(volume.get())
+	# slice_viewer(volume.get())
 
 	# Remove small areas outside of lungs, assuming lungs are largets region
 	labeled, num_regions = sp.ndimage.label(volume)
