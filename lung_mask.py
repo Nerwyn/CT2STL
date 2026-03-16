@@ -1,4 +1,4 @@
-from args import args, np, sp
+from args import np, sp, to_np
 from skimage.segmentation import flood_fill
 
 sphere_3 = sp.ndimage.generate_binary_structure(3, 1)
@@ -16,7 +16,7 @@ def generate_lung_mask(volume: np.ndarray):
 	# volume = sp.ndimage.binary_opening(volume, sphere_3)
 
 	# Remove area outside of lungs
-	volume = volume.get() if args.gpu else volume  # ty: ignore
+	volume = to_np(volume)
 	for k in [0, z - 1]:
 		for j in [0, y - 1]:
 			for i in [0, x - 1]:

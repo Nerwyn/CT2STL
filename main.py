@@ -5,8 +5,9 @@ from skimage import measure
 from stl import mesh
 from pydicom import dcmread, FileDataset
 
-from args import args, np, sp
-from slice_viewer import slice_viewer
+from args import args, np, sp, to_np
+
+# from slice_viewer import slice_viewer
 from lung_mask import generate_lung_mask
 
 
@@ -66,8 +67,8 @@ def main():
 						mask = generate_lung_mask(raw)
 						lungs = mask * raw
 
-						mask = mask.get() if args.gpu else mask
-						lungs = lungs.get() if args.gpu else lungs
+						mask = to_np(mask)
+						lungs = to_np(lungs)
 					case _:
 						continue
 
@@ -85,12 +86,12 @@ def main():
 def export_stl(volume: np.ndarray, outfile: str):
 	"""Export a 3D numpy volume as a stl file."""
 	vertices, faces, normals, values = measure.marching_cubes(volume)
-	mesh_data = np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype).get()
+	mesh_data = to_np(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
 	out_mesh = mesh.Mesh(mesh_data)
 	for i, f in enumerate(faces):
 		for j in range(3):
 			out_mesh.vectors[i][j] = vertices[f[j], :]
-	out_mesh.rotate(np.array([0, 1, 0]).get(), math.radians(-90))  # ty: ignore
+	out_mesh.rotate(np.array(to_np([0, 1, 0])), math.radians(-90))
 	out_mesh.save(outfile)
 
 

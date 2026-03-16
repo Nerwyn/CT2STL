@@ -10,5 +10,9 @@ if args.gpu:
 	import cupy as np
 	import cupyx.scipy as sp
 else:
-	import numpy as np # noqa
-	import scipy as sp # noqa
+	import numpy as np
+	import scipy as sp  # noqa
+
+
+def to_np(x: np.ndarray) -> np.ndarray:
+	return x.get() if args.gpu else x  # ty: ignore
