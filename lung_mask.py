@@ -1,3 +1,4 @@
+from slice_viewer import slice_viewer
 from args import np, sp, to_np
 from skimage.segmentation import flood_fill
 
@@ -10,19 +11,28 @@ def generate_lung_mask(volume: np.ndarray):
 	z, y, x = volume.shape
 
 	# Binarize
-	volume: np.ndarray = volume > 3000
+	f_max = volume.max()
+	f_min = volume.min()
+	volume = np.clip(
+		np.round(255 * (volume - f_min) / (f_max - f_min)),
+		0,
+		255,
+	).astype(np.uint8)
+	volume: np.ndarray = volume > 100
 
 	# Morphological open to remove outer thin areas which may be touching body
 	# volume = sp.ndimage.binary_opening(volume, sphere_3)
 
 	# Remove area outside of lungs
 	volume = to_np(volume)
+	slice_viewer(volume)
 	for k in [0, z - 1]:
 		for j in [0, y - 1]:
 			for i in [0, x - 1]:
 				volume = flood_fill(volume, (k, j, i), 1)
 	volume = np.array(volume)
 	volume = np.invert(volume)
+	slice_viewer(volume.get())
 
 	# Remove small areas outside of lungs, assuming lungs are largets region
 	labeled, num_regions = sp.ndimage.label(volume)

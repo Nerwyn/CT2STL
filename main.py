@@ -33,26 +33,48 @@ def main():
 	for study in ds:
 		for series in ds[study]:
 			try:
-				match ds[study][series][0].Modality:
+				slices = ds[study][series]
+				match slices[0].Modality:
 					case 'SEG':
-						raw = np.array(ds[study][series][0].pixel_array)
+						raw = np.array(slices[0].pixel_array)
 					case 'CT':
 						# Get dimensions
-						c, r = ds[study][series][0].pixel_array.shape
-						n = 0
-						for dsn in ds[study][series]:
-							if dsn.InstanceNumber > n:
-								n = dsn.InstanceNumber
+						c, r = slices[0].pixel_array.shape
+						n = len(slices)
+
+						# Sort slices by image position and orientation
+						orientation = slices[0].ImageOrientationPatient
+						row_vect = orientation[:3]
+						col_vect = orientation[3:]
+						norm_vect = np.cross(row_vect, col_vect)
+
+						positions = [
+							np.dot(np.array(dsn.ImagePositionPatient), norm_vect).item()
+							for dsn in slices
+						]
+						e_slices = list(enumerate(slices))
+						e_slices.sort(
+							key=lambda x: positions[x[0]],
+							reverse=True,
+						)
+						slices = [x[1] for x in e_slices]
+						positions.sort(reverse=True)
 
 						# Create volume and load data into it
 						raw = np.zeros((n, c, r), dtype=np.int32)
-						for dsn in ds[study][series]:
+						for dsn in slices:
 							raw[dsn.InstanceNumber - 1] = np.array(dsn.pixel_array)
 
 						# Normalize to 1mm3
-						scale_y, scale_x = ds[study][series][0].PixelSpacing
-						scale_z = ds[study][series][0].SliceThickness
+						distances = []
+						for i in range(len(positions) - 2):
+							distances.append(positions[i] - positions[i + 1])
+						scale_z = sum(distances) / len(distances)
+						scale_y, scale_x = slices[0].PixelSpacing
 						raw = sp.ndimage.zoom(raw, (scale_z, scale_y, scale_x))
+
+						# Reorient to transverse plane
+						print(norm_vect)
 
 						# Window data to display lungs
 						width = 1800
@@ -64,17 +86,14 @@ def main():
 						raw = np.clip(c1 * (raw - center) + c2, mn, mx)
 
 						# Mask lungs
-						mask = generate_lung_mask(raw)
-						lungs = mask * raw
-
-						mask = to_np(mask)
-						lungs = to_np(lungs)
+						# mask = to_np(generate_lung_mask(raw))
+						# lungs = to_np(mask * raw)
 					case _:
 						continue
 
 				# Export data as stl
-				date = ds[study][series][0].AcquisitionDate
-				export_stl(mask, f'./output/{study}-{series}-{date}.stl')
+				date = slices[0].AcquisitionDate
+				# export_stl(mask, f'./output/{study}-{series}-{date}.stl')
 
 				# Display data
 				# slice_viewer(lungs)
@@ -91,7 +110,7 @@ def export_stl(volume: np.ndarray, outfile: str):
 	for i, f in enumerate(faces):
 		for j in range(3):
 			out_mesh.vectors[i][j] = vertices[f[j], :]
-	out_mesh.rotate(np.array(to_np([0, 1, 0])), math.radians(-90))
+	out_mesh.rotate(to_np(np.array([0, 1, 0])), math.radians(-90))
 	out_mesh.save(outfile)
 
 
