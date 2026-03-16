@@ -72,7 +72,7 @@ def main():
 						continue
 
 				# Export data as stl
-				date = ds[study][series][0]['AcquisitionDate']
+				date = ds[study][series][0].AcquisitionDate
 				export_stl(mask, f'./output/{study}-{series}-{date}.stl')
 
 				# Display data
