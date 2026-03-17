@@ -4,11 +4,11 @@ import math
 
 from skimage import measure
 from stl import mesh
-from pydicom import dcmread, FileDataset
+from pydicom import dcmread, FileDataset, pixels
 
 from args import args, np, sp, to_np
 
-# from slice_viewer import slice_viewer
+from slice_viewer import slice_viewer
 from lung_mask import generate_lung_mask
 
 SAGITTAL_VECT = np.array([1, 0, 0])
@@ -66,7 +66,7 @@ def main():
 						positions.sort(reverse=True)
 
 						# Create volume and load data into it
-						raw = np.zeros((n, c, r), dtype=np.int32)
+						raw = np.zeros((n, c, r), dtype=np.int16)
 						for dsn in slices:
 							raw[dsn.InstanceNumber - 1] = np.array(dsn.pixel_array)
 
@@ -78,6 +78,11 @@ def main():
 						scale_y, scale_x = slices[0].PixelSpacing
 						raw = sp.ndimage.zoom(raw, (scale_z, scale_y, scale_x))
 
+						# Window data to display lungs
+						width = 1800
+						center = -585
+						raw = window_level(raw, width, center)
+
 						# Rotate to transverse plane if coronal or sagittal
 						norm_vect = np.abs(norm_vect)
 						if not np.array_equal(norm_vect, TRANSVERSE_VECT):
@@ -86,7 +91,6 @@ def main():
 								raw = np.flip(raw, axis=0)
 								raw = np.rot90(raw, k=3, axes=(1, 2))
 							elif np.array_equal(norm_vect, CORONAL_VECT):
-								continue
 								raw = np.rot90(raw, axes=(0, 1))
 								raw = np.flip(raw, axis=0)
 							else:
@@ -94,34 +98,46 @@ def main():
 									'Unsupported orientation: ' + str(norm_vect),
 									file=sys.stderr,
 								)
-						else:
-							continue
 
-						# Window data to display lungs
-						width = 1800
-						center = -585
-						mx = np.max(raw)
-						mn = np.min(raw)
-						c1 = (mx - mn) / width
-						c2 = (mx + mn) / 2
-						raw = np.clip(c1 * (raw - center) + c2, mn, mx)
+						# Convert to 8 bit
+						raw = to_8bit(raw)
 
-						# slice_viewer(to_np(raw))
+						slice_viewer(to_np(raw))
 
 						# Mask lungs
-						mask = to_np(generate_lung_mask(raw))
+						# mask = to_np(generate_lung_mask(raw))
 						# lungs = to_np(mask * raw)
 					case _:
 						continue
 
 				# Export data as stl
-				date = slices[0].AcquisitionDate
-				export_stl(mask, f'./output/{study}-{series}-{date}.stl')
+				# date = slices[0].AcquisitionDate
+				# export_stl(mask, f'./output/{study}-{series}-{date}.stl')
 
 				# slice_viewer(lungs)
 
 			except Exception as e:
 				print('Failed to process study', study, series, e)
+
+
+def window_level(a: np.ndarray, w: int, c: int) -> np.ndarray:
+	min = c - 0.5 - (w - 1) / 2
+	max = c - 0.5 + (w - 1) / 2
+	a = np.clip(a, min, max)
+	a = (((a - (c - 0.5)) / (w - 1)) + 0.5) * (max - min) + min
+	return a.astype(np.int16)
+
+
+def to_8bit(volume: np.ndarray) -> np.ndarray:
+	f_min = volume.min()
+	f_max = volume.max()
+	volume = ((volume - f_min) / (f_max - f_min)) * 255
+	volume = np.clip(
+		volume,
+		0,
+		255,
+	).astype(np.uint8)
+	return volume
 
 
 def export_stl(volume: np.ndarray, outfile: str):

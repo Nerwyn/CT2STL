@@ -20,11 +20,15 @@ def slice_viewer(X):
 			self.slices = X.shape[0]
 			self.ind = 0
 
-			self.im = ax.imshow(self.X[self.ind, :, :], cmap='gray')
+			self.vmin = X.min()
+			self.vmax = X.max()
+			self.im = ax.imshow(
+				self.X[self.ind, :, :], cmap='gray', vmin=self.vmin, vmax=self.vmax
+			)
 			self.update()
 
 		def onscroll(self, event):
-			match(event.button):
+			match event.button:
 				case 'up':
 					self.ind = (self.ind + 1) % self.slices
 				case 'down':
@@ -32,7 +36,7 @@ def slice_viewer(X):
 			self.update()
 
 		def onpress(self, event):
-			match(event.key):
+			match event.key:
 				case 'pageup':
 					self.ind = (self.ind + 10) % self.slices
 				case 'pagedown':
@@ -46,7 +50,8 @@ def slice_viewer(X):
 		def update(self):
 			self.im.set_data(self.X[self.ind, :, :])
 			self.ax.set_ylabel('slice %s' % self.ind)
-			self.im.axes.figure.canvas.draw()
+			self.im.axes.figure.canvas.draw_idle()
+			self.im.axes.figure.canvas.flush_events()
 
 	fig, ax = plt.subplots(1, 1)
 	tracker = IndexTracker(ax, X)

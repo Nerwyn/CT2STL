@@ -11,13 +11,6 @@ def generate_lung_mask(volume: np.ndarray):
 	z, y, x = volume.shape
 
 	# Binarize
-	f_max = volume.max()
-	f_min = volume.min()
-	volume = np.clip(
-		np.round(255 * (volume - f_min) / (f_max - f_min)),
-		0,
-		255,
-	).astype(np.uint8)
 	volume: np.ndarray = volume > 100
 
 	# Morphological open to remove outer thin areas which may be touching body
