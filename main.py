@@ -8,8 +8,8 @@ from pydicom import dcmread, FileDataset
 
 from args import args, np, sp, to_np
 
-# from slice_viewer import slice_viewer
 from lung_mask import generate_lung_mask
+# from slice_viewer import slice_viewer
 
 SAGITTAL_VECT = np.array([1, 0, 0])
 CORONAL_VECT = np.array([0, 1, 0])
@@ -65,18 +65,17 @@ def main():
 						slices = [x[1] for x in e_slices]
 						positions.sort(reverse=True)
 
-						# Create volume and load data into it
-						raw = np.zeros((n, c, r), dtype=np.int16)
-						for dsn in slices:
-							raw[dsn.InstanceNumber - 1] = np.array(dsn.pixel_array)
-
-						# Normalize to 1mm3
+						# Get xyz scale values for later normalization
 						distances = []
 						for i in range(len(positions) - 2):
 							distances.append(positions[i] - positions[i + 1])
 						scale_z = sum(distances) / len(distances)
 						scale_y, scale_x = slices[0].PixelSpacing
-						raw = sp.ndimage.zoom(raw, (scale_z, scale_y, scale_x))
+
+						# Create volume and load data into it
+						raw = np.zeros((n, c, r), dtype=np.int16)
+						for dsn in slices:
+							raw[dsn.InstanceNumber - 1] = np.array(dsn.pixel_array)
 
 						# Window data to display lungs
 						width = 1800
@@ -90,20 +89,37 @@ def main():
 								raw = np.rot90(raw, axes=(0, 1))
 								raw = np.flip(raw, axis=0)
 								raw = np.rot90(raw, k=3, axes=(1, 2))
+
+								temp = scale_z
+								scale_z = scale_y
+								scale_y = scale_x
+								scale_x = temp
 							elif np.array_equal(norm_vect, CORONAL_VECT):
 								raw = np.rot90(raw, axes=(0, 1))
 								raw = np.flip(raw, axis=0)
+
+								temp = scale_z
+								scale_z = scale_y
+								scale_y = temp
 							else:
 								print(
 									'Unsupported orientation: ' + str(norm_vect),
 									file=sys.stderr,
 								)
 
-						# Convert to 8 bit
+						# Convert to 8 bit range
 						raw = to_8bit(raw)
 
 						# Trim empty slices
 						raw = trim_volume(raw)
+
+						# Normalize to 1mm3
+						raw = sp.ndimage.zoom(
+							raw.astype(np.float32), (scale_z, scale_y, scale_x)
+						)
+
+						# Fix values overflowed out of 8 bit range by zoom
+						raw = np.clip(raw, 0, 255).astype(np.uint8)
 
 						# slice_viewer(to_np(raw))
 

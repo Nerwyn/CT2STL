@@ -1,10 +1,9 @@
-from slice_viewer import slice_viewer
 from args import np, sp, to_np
 from skimage.segmentation import flood_fill
 
-sphere_3 = sp.ndimage.generate_binary_structure(3, 1)
-sphere_5 = sp.ndimage.iterate_structure(sphere_3, 2)
-sphere_9 = sp.ndimage.iterate_structure(sphere_5, 2)
+# from slice_viewer import slice_viewer
+
+# sphere_3 = sp.ndimage.generate_binary_structure(3, 1)
 
 
 def generate_lung_mask(volume: np.ndarray):
