@@ -1,5 +1,4 @@
 import os
-import sys
 import math
 
 from skimage import measure
