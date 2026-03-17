@@ -11,9 +11,14 @@ from args import args, np, sp, to_np
 from lung_mask import generate_lung_mask
 # from slice_viewer import slice_viewer
 
-SAGITTAL_VECT = np.array([1, 0, 0])
-CORONAL_VECT = np.array([0, 1, 0])
-TRANSVERSE_VECT = np.array([0, 0, 1])
+
+class Direction:
+	SAGITTAL = '1.0,0.0,0.0'
+	CORONAL = '0.0,1.0,0.0'
+	TRANSVERSE = '0.0,0.0,1.0'
+	SAGITTAL_REV = '-1.0,0.0,0.0'
+	CORONAL_REV = '0.0,-1.0,0.0'
+	TRANSVERSE_REV = '0.0,0.0,-1.0'
 
 
 def main():
@@ -74,8 +79,8 @@ def main():
 
 						# Create volume and load data into it
 						raw = np.zeros((n, c, r), dtype=np.int16)
-						for dsn in slices:
-							raw[dsn.InstanceNumber - 1] = np.array(dsn.pixel_array)
+						for i in range(len(slices)):
+							raw[i] = np.array(slices[i].pixel_array)
 
 						# Window data to display lungs
 						width = 1800
@@ -83,9 +88,14 @@ def main():
 						raw = window_level(raw, width, center)
 
 						# Rotate to transverse plane if coronal or sagittal
-						norm_vect = np.abs(norm_vect)
-						if not np.array_equal(norm_vect, TRANSVERSE_VECT):
-							if np.array_equal(norm_vect, SAGITTAL_VECT):
+						norm_vect_str = ','.join(
+							str(i) for i in norm_vect.tolist()
+						).replace('-0', '0')
+						match norm_vect_str:
+							case Direction.SAGITTAL | Direction.SAGITTAL_REV:
+								if norm_vect_str == Direction.SAGITTAL_REV:
+									raw = np.flip(raw, axis=0)
+
 								raw = np.rot90(raw, axes=(0, 1))
 								raw = np.flip(raw, axis=0)
 								raw = np.rot90(raw, k=3, axes=(1, 2))
@@ -94,17 +104,23 @@ def main():
 								scale_z = scale_y
 								scale_y = scale_x
 								scale_x = temp
-							elif np.array_equal(norm_vect, CORONAL_VECT):
-								raw = np.rot90(raw, axes=(0, 1))
-								raw = np.flip(raw, axis=0)
+							case Direction.CORONAL | Direction.CORONAL_REV:
+								if norm_vect_str == Direction.CORONAL_REV:
+									raw = np.flip(raw, axis=0)
+
+								raw = np.rot90(raw, k=3, axes=(0, 1))
+								# raw = np.flip(raw, axis=0)
 
 								temp = scale_z
 								scale_z = scale_y
 								scale_y = temp
-							else:
-								print(
-									'Unsupported orientation: ' + str(norm_vect),
-									file=sys.stderr,
+							case Direction.TRANSVERSE_REV:
+								raw = np.flip(raw, axis=0)
+							case Direction.TRANSVERSE:
+								pass
+							case _:
+								raise Exception(
+									'Unsupported orientation: ' + norm_vect_str,
 								)
 
 						# Convert to 8 bit range
