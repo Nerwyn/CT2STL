@@ -33,14 +33,18 @@ def generate_lung_mask(volume: np.ndarray):
 	volume = (labeled == lung_region_label).astype(bool)
 
 	# Fill holes in lung layer by layer
-	fill_holes(volume)
+	volume = fill_holes(volume)
 
 	return np.invert(volume)
 
 
 def fill_holes(volume: np.ndarray):
-	"""Fill holes using labels as cupy binary_fill_holes is broken"""
+	"""
+	Fill holes using labels as cupy binary_fill_holes is broken
+	https://github.com/cupy/cupy/issues/9742
+	"""
 	for k in range(volume.shape[0]):
 		labeled, num_regions = sp.ndimage.label(np.invert(volume[k]))
-		# region_sizes = np.bincount(labeled.ravel())
 		volume[k] = labeled == 1
+
+	return volume
