@@ -1,7 +1,6 @@
-from slice_viewer import slice_viewer
 import os
+import sys
 import math
-import traceback
 
 from skimage import measure
 from stl import mesh
@@ -11,6 +10,10 @@ from args import args, np, sp, to_np
 
 # from slice_viewer import slice_viewer
 from lung_mask import generate_lung_mask
+
+SAGITTAL_VECT = np.array([1, 0, 0])
+CORONAL_VECT = np.array([0, 1, 0])
+TRANSVERSE_VECT = np.array([0, 0, 1])
 
 
 def main():
@@ -75,52 +78,24 @@ def main():
 						scale_y, scale_x = slices[0].PixelSpacing
 						raw = sp.ndimage.zoom(raw, (scale_z, scale_y, scale_x))
 
-						# Rotate to transverse plane
-						transverse_vect = np.array([0, 0, 1])
-						angle = np.arccos(np.dot(norm_vect, transverse_vect))
-						print(angle)
-						if angle != 0:
-							v = to_np(np.cross(norm_vect, transverse_vect))
-							c = np.dot(norm_vect, transverse_vect)
-							v_cross = np.array(
-								[
-									[0, -1 * v[2], v[1]],
-									[v[2], 0, -1 * v[0]],
-									[-1 * v[1], v[0], 0],
-								],
-							)
-							r = v_cross + np.dot(v_cross, v_cross) * (1 / (1 + c))
-
-							raw = sp.spatial.transform.Rotation.from_matrix(r).apply(
-								raw
-							)
-
-							# ip0 = slices[0].ImagePositionPatient
-							# ipn = slices[n - 1].ImagePositionPatient
-							# matrix = np.array(
-							# 	[
-							# 		[
-							# 			col_vect[0] * scale_y,
-							# 			row_vect[0] * scale_x,
-							# 			(ipn[0] - ip0[0]) / (n - 1),
-							# 			ip0[0],
-							# 		],
-							# 		[
-							# 			col_vect[1] * scale_y,
-							# 			row_vect[1] * scale_x,
-							# 			(ipn[1] - ip0[1]) / (n - 1),
-							# 			ip0[1],
-							# 		],
-							# 		[
-							# 			col_vect[2] * scale_y,
-							# 			row_vect[2] * scale_x,
-							# 			(ipn[2] - ip0[2]) / (n - 1),
-							# 			ip0[2],
-							# 		],
-							# 		[0, 0, 0, 1],
-							# 	]
-							# )
-							# raw = sp.ndimage.affine_transform(raw, matrix)
+						# Rotate to transverse plane if coronal or sagittal
+						norm_vect = np.abs(norm_vect)
+						if not np.array_equal(norm_vect, TRANSVERSE_VECT):
+							if np.array_equal(norm_vect, SAGITTAL_VECT):
+								raw = np.rot90(raw, axes=(0, 1))
+								raw = np.flip(raw, axis=0)
+								raw = np.rot90(raw, k=3, axes=(1, 2))
+							elif np.array_equal(norm_vect, CORONAL_VECT):
+								continue
+								raw = np.rot90(raw, axes=(0, 1))
+								raw = np.flip(raw, axis=0)
+							else:
+								print(
+									'Unsupported orientation: ' + str(norm_vect),
+									file=sys.stderr,
+								)
+						else:
+							continue
 
 						# Window data to display lungs
 						width = 1800
@@ -131,7 +106,7 @@ def main():
 						c2 = (mx + mn) / 2
 						raw = np.clip(c1 * (raw - center) + c2, mn, mx)
 
-						slice_viewer(to_np(raw))
+						# slice_viewer(to_np(raw))
 
 						# Mask lungs
 						mask = to_np(generate_lung_mask(raw))
@@ -146,8 +121,7 @@ def main():
 				# slice_viewer(lungs)
 
 			except Exception as e:
-				# print(e)
-				traceback.print_exc()
+				print('Failed to process study', study, series, e)
 
 
 def export_stl(volume: np.ndarray, outfile: str):
