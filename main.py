@@ -11,32 +11,9 @@ from lung_mask import generate_lung_mask
 # from slice_viewer import slice_viewer
 
 
-class Direction:
-	SAGITTAL = '1.0,0.0,0.0'
-	CORONAL = '0.0,1.0,0.0'
-	TRANSVERSE = '0.0,0.0,1.0'
-	SAGITTAL_REV = '-1.0,0.0,0.0'
-	CORONAL_REV = '0.0,-1.0,0.0'
-	TRANSVERSE_REV = '0.0,0.0,-1.0'
-
-
 def main():
 	# Read all data
-	ds: dict[str, dict[str, list[FileDataset]]] = {}
-	for root, _dirs, files in os.walk(args.in_dir):
-		for f in files:
-			fp = os.path.join(root, f)
-
-			try:
-				ds0: FileDataset = dcmread(fp)
-				study: str = str(ds0.StudyInstanceUID)
-				series: str = str(ds0.SeriesInstanceUID)
-
-				ds.setdefault(study, {})
-				ds[study].setdefault(series, [])
-				ds[study][series].append(ds0)
-			except Exception as _e:
-				pass
+	ds = load_volumes(args.in_dir)
 
 	# Volumize data
 	for study in ds:
@@ -152,6 +129,35 @@ def main():
 
 			except Exception as e:
 				print('Failed to process study', study, series, e)
+
+
+class Direction:
+	SAGITTAL = '1.0,0.0,0.0'
+	CORONAL = '0.0,1.0,0.0'
+	TRANSVERSE = '0.0,0.0,1.0'
+	SAGITTAL_REV = '-1.0,0.0,0.0'
+	CORONAL_REV = '0.0,-1.0,0.0'
+	TRANSVERSE_REV = '0.0,0.0,-1.0'
+
+
+def load_volumes(in_dir: str) -> dict[str, dict[str, list[FileDataset]]]:
+	ds: dict[str, dict[str, list[FileDataset]]] = {}
+	for root, _dirs, files in os.walk(args.in_dir):
+		for f in files:
+			fp = os.path.join(root, f)
+
+			try:
+				ds0: FileDataset = dcmread(fp)
+				study: str = str(ds0.StudyInstanceUID)
+				series: str = str(ds0.SeriesInstanceUID)
+
+				ds.setdefault(study, {})
+				ds[study].setdefault(series, [])
+				ds[study][series].append(ds0)
+			except Exception as _e:
+				pass
+
+	return ds
 
 
 def window_level(a: np.ndarray, w: int, c: int) -> np.ndarray:
