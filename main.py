@@ -109,7 +109,6 @@ def main():
 									raw = np.flip(raw, axis=0)
 
 								raw = np.rot90(raw, k=3, axes=(0, 1))
-								# raw = np.flip(raw, axis=0)
 
 								temp = scale_z
 								scale_z = scale_y
