@@ -4,11 +4,11 @@ import math
 
 from skimage import measure
 from stl import mesh
-from pydicom import dcmread, FileDataset, pixels
+from pydicom import dcmread, FileDataset
 
 from args import args, np, sp, to_np
 
-from slice_viewer import slice_viewer
+# from slice_viewer import slice_viewer
 from lung_mask import generate_lung_mask
 
 SAGITTAL_VECT = np.array([1, 0, 0])
@@ -102,19 +102,23 @@ def main():
 						# Convert to 8 bit
 						raw = to_8bit(raw)
 
-						slice_viewer(to_np(raw))
+						# Trim empty slices
+						raw = trim_volume(raw)
+
+						# slice_viewer(to_np(raw))
 
 						# Mask lungs
-						# mask = to_np(generate_lung_mask(raw))
+						mask = to_np(generate_lung_mask(raw))
 						# lungs = to_np(mask * raw)
+
+						# slice_viewer(mask)
+						# slice_viewer(lungs)
 					case _:
 						continue
 
 				# Export data as stl
-				# date = slices[0].AcquisitionDate
-				# export_stl(mask, f'./output/{study}-{series}-{date}.stl')
-
-				# slice_viewer(lungs)
+				date = slices[0].AcquisitionDate
+				export_stl(mask, f'./output/{study}-{series}-{date}.stl')
 
 			except Exception as e:
 				print('Failed to process study', study, series, e)
@@ -137,6 +141,18 @@ def to_8bit(volume: np.ndarray) -> np.ndarray:
 		0,
 		255,
 	).astype(np.uint8)
+	return volume
+
+
+def trim_volume(volume: np.ndarray) -> np.ndarray:
+	for i in range(len(volume) - 1):
+		if volume[i, :, :].any():
+			volume = volume[i:, :, :]
+			break
+	for i in range(len(volume) - 1, -1, -1):
+		if volume[i, :, :].any():
+			volume = volume[: i - 1, :, :]
+			break
 	return volume
 
 
