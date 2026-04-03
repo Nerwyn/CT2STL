@@ -44,6 +44,7 @@ dependencies = [
     { name = "numpy" },
     { name = "numpy-stl" },
     { name = "pydicom" },
+    { name = "pymeshfix" },
     { name = "scikit-image" },
     { name = "scipy" },
 ]
@@ -64,6 +65,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4.2" },
     { name = "numpy-stl", specifier = ">=3.2.0" },
     { name = "pydicom", specifier = ">=3.0.1" },
+    { name = "pymeshfix", specifier = ">=0.18.0" },
     { name = "scikit-image", specifier = ">=0.26.0" },
     { name = "scipy", specifier = ">=1.17.1" },
 ]
@@ -328,6 +330,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d7/6f/55ea163b344c91df2e03c007bebf94781f0817656e2c037d7c5bf86c3bfc/pydicom-3.0.1.tar.gz", hash = "sha256:7b8be344b5b62493c9452ba6f5a299f78f8a6ab79786c729b0613698209603ec", size = 2884731, upload-time = "2024-09-22T02:02:43.202Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/27/a6/98651e752a49f341aa99aa3f6c8ba361728dfc064242884355419df63669/pydicom-3.0.1-py3-none-any.whl", hash = "sha256:db32f78b2641bd7972096b8289111ddab01fb221610de8d7afa835eb938adb41", size = 2376126, upload-time = "2024-09-22T02:02:41.616Z" },
+]
+
+[[package]]
+name = "pymeshfix"
+version = "0.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/52/e0/1bcf152040239f78c215dbabfb2f773570bf8b1660c39f1441b3bd31ef86/pymeshfix-0.18.0.tar.gz", hash = "sha256:c92dcccba6921fed6bdab0b6b8d232f4167407e7acbba959895c8340be7cf3a6", size = 1409548, upload-time = "2026-01-28T21:48:13.819Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/95/f1ee0461611b44e2266e597216e8b49a5d56876b452bbf823ff12c024bdc/pymeshfix-0.18.0-cp312-abi3-macosx_10_13_x86_64.whl", hash = "sha256:36685ac6a54226b7198f8b56e35f22f87771e7281d6aea865955c54ba8cac244", size = 1327299, upload-time = "2026-01-28T21:48:03.952Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/5c/3fd4f42e985eb53a603f03c717071f61deeaadc0bbe42433187947d517dd/pymeshfix-0.18.0-cp312-abi3-macosx_11_0_arm64.whl", hash = "sha256:fa0905d6256c4694af38d7e8baa304e3f54c0553781758dfe63ca6a55cbd72ea", size = 1318155, upload-time = "2026-01-28T21:48:06.181Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/62/edba76fc9d6d71acad881a3c9250594c71fa04ffd156a486ffc42a117bb9/pymeshfix-0.18.0-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:821991d8b3f6bf58fb3eeeadd8599bd69d3e6cee4191e137b90a0587894f96a9", size = 1340175, upload-time = "2026-01-28T21:48:07.754Z" },
+    { url = "https://files.pythonhosted.org/packages/02/cf/f5c895d01457ba3aa218ff2408ae4d1b0cbff7efd891ce671cf6ac51cbd9/pymeshfix-0.18.0-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8d99c508b9fcd39732d7b617994ccb9a0eda4c5c329639bd9d02bd988b0d5288", size = 1351517, upload-time = "2026-01-28T21:48:10.085Z" },
+    { url = "https://files.pythonhosted.org/packages/52/1a/d3bb42b886419209b45f18ccba3c434ef988050b5ec0579a06d9200d133b/pymeshfix-0.18.0-cp312-abi3-win_amd64.whl", hash = "sha256:e66a3c45b2364097c5ef8e1039d01077856aa6ff831e433806451471d6f073a8", size = 1507575, upload-time = "2026-01-28T21:48:11.787Z" },
 ]
 
 [[package]]

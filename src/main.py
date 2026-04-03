@@ -2,6 +2,7 @@ import os
 import math
 
 from skimage import measure
+from pymeshfix import clean_from_arrays
 from stl import mesh
 from pydicom import dcmread, FileDataset
 
@@ -195,6 +196,7 @@ def trim_volume(volume: np.ndarray) -> np.ndarray:
 def export_stl(volume: np.ndarray, outfile: str):
 	"""Export a 3D numpy volume as a stl file."""
 	vertices, faces, normals, values = measure.marching_cubes(volume)
+	vertices, faces = clean_from_arrays(vertices, faces)
 	mesh_data = to_np(np.zeros(faces.shape[0], dtype=mesh.Mesh.dtype))
 	out_mesh = mesh.Mesh(mesh_data)
 	for i, f in enumerate(faces):
